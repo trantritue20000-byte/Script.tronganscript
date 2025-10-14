@@ -1,0 +1,2 @@
+print("Hello from GitHub Lua script!")
+game.Players.LocalPlayer:Kick("Bạn vừa chạy script từ GitHub!")
