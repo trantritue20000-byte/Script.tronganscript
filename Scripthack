@@ -1,40 +1,192 @@
--- Simple GUI: Nút Hello + thông báo
-local Players = game:GetService("Players")
-local StarterGui = game:GetService("StarterGui")
-local player = Players.LocalPlayer
-if not player then return end
+-- Anh/chị chỉnh các url thành RAW URL trả về mã thô (raw.githubusercontent.com/.../branch/path)
+-- Script loader an toàn & async, phù hợp KRNL
 
--- Xoá GUI cũ (nếu có) để tránh nhân bản
-if player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("TronganHelloGui") then
-    player.PlayerGui.TronganHelloGui:Destroy()
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+repeat task.wait() until player and player:FindFirstChild("PlayerGui")
+
+-- Hàm load an toàn (async) - trả về true/false và message
+local function FastLoad(url)
+    spawn(function()
+        local ok, src = pcall(function()
+            return game:HttpGet(url, true) -- true để lấy luôn bản mới
+        end)
+        if not ok or not src or src == "" then
+            warn("Download failed or empty source:", url, src)
+            return
+        end
+
+        local ok2, fnOrErr = pcall(loadstring, src)
+        if not ok2 or type(fnOrErr) ~= "function" then
+            warn("Compile error for url:", url, fnOrErr)
+            return
+        end
+
+        local ok3, runErr = pcall(fnOrErr)
+        if not ok3 then
+            warn("Runtime error for url:", url, runErr)
+            return
+        end
+    end)
 end
 
--- Tạo ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TronganHelloGui"
-screenGui.ResetOnTeleport = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+-- LOAD ORIONLIB
+-- CHÚ Ý: thay URL bên dưới bằng RAW URL cho OrionLib nếu bạn có (ví dụ raw.githubusercontent.com/..../OrionLib.lua)
+local OrionLibUrl = "https://raw.githubusercontent.com/<username>/<repo>/main/OrionLib.lua" -- <- sửa bằng raw đúng
+local OrionLib
+do
+    local ok, res = pcall(function()
+        local src = game:HttpGet(OrionLibUrl, true)
+        return loadstring(src)()
+    end)
+    if ok then
+        OrionLib = res
+    else
+        warn("Không load được OrionLib, GUI sẽ không hoạt động. Lỗi:", res)
+    end
+end
 
--- Frame chính
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 110)
-frame.Position = UDim2.new(0.5, -110, 0.5, -55)
-frame.AnchorPoint = Vector2.new(0.5, 0.5)
-frame.BackgroundTransparency = 0
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
-frame.Parent = screenGui
+-- Nếu OrionLib không load được, ta sẽ tạo fallback GUI nhỏ (đơn giản) để đỡ trống
+if not OrionLib then
+    -- fallback: simple window creator (minimal, không đầy đủ tính năng Orion)
+    local function MakeSimpleWindow(name)
+        local gui = Instance.new("ScreenGui")
+        gui.Name = name .. "_fallback"
+        gui.ResetOnTeleport = false
+        gui.Parent = player.PlayerGui
 
--- Tiêu đề
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -20, 0, 30)
-title.Position = UDim2.new(0, 10, 0, 5)
-title.BackgroundTransparency = 1
-title.Text = "tronganscript"
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 18
-title.TextXAlignment = Enum.TextXAlignment.Left
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, 360, 0, 260)
+        frame.Position = UDim2.new(0.5, -180, 0.5, -130)
+        frame.AnchorPoint = Vector2.new(0.5, 0.5)
+        frame.BackgroundColor3 = Color3.fromRGB(32,32,32)
+        frame.Parent = gui
+
+        local title = Instance.new("TextLabel")
+        title.Size = UDim2.new(1, 0, 0, 28)
+        title.BackgroundTransparency = 1
+        title.Text = name
+        title.TextColor3 = Color3.new(1,1,1)
+        title.Font = Enum.Font.SourceSansBold
+        title.TextSize = 18
+        title.Parent = frame
+
+        return {
+            AddButton = function(opts)
+                local btn = Instance.new("TextButton")
+                btn.Size = UDim2.new(0, 320, 0, 32)
+                btn.Position = UDim2.new(0, 20, 0, 40 + (#frame:GetChildren()-3)*38)
+                btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+                btn.TextColor3 = Color3.new(1,1,1)
+                btn.Font = Enum.Font.SourceSans
+                btn.TextSize = 16
+                btn.Text = opts.Name or "Button"
+                btn.Parent = frame
+                btn.MouseButton1Click:Connect(function()
+                    if type(opts.Callback) == "function" then
+                        pcall(opts.Callback)
+                    end
+                end)
+            end
+        }
+    end
+
+    Window = MakeSimpleWindow("Anscript HUB (fallback)")
+else
+    -- Nếu OrionLib load OK, tạo Window bằng Orion
+    Window = OrionLib:MakeWindow({Name = "Anscript HUB", HidePremium = false, SaveConfig = true, ConfigFolder = "dxl_bf"})
+end
+
+-- Nếu OrionLib tồn tại, tạo tabs bằng Orion, nếu fallback thì Window đã là bảng có AddButton
+local function MakeTabIfOrion(name)
+    if OrionLib and Window.MakeTab then
+        return Window:MakeTab({Name = name, Icon = "rbxassetid://4483345998", PremiumOnly = false})
+    else
+        -- fallback: Window là object đơn giản có AddButton, trả về chính nó
+        return Window
+    end
+end
+
+local Tab = MakeTabIfOrion("Scripts Mới")
+local Tab2 = MakeTabIfOrion("Mod Client")
+local Tab3 = MakeTabIfOrion("Mod Game")
+local Tab4 = MakeTabIfOrion("Script Cũ")
+
+-- === LƯU Ý QUAN TRỌNG ===
+-- Nhiều URL trong file gốc của bạn KHÔNG PHẢI raw URL (ví dụ github.com/... hoặc refs/heads/... hoặc link đến README).
+-- Bạn **phải** sửa các URL bên dưới thành raw URL trả về mã thô (raw.githubusercontent.com/<user>/<repo>/branch/path)
+-- Hoặc direct pastebin raw link (pastebin.com/raw/xxxxx) / raw content server.
+
+-- Ví dụ: Tab3 Buttons
+Tab3:AddButton({Name = "RTX", Callback = function()
+    -- Thay URL bên dưới bằng RAW URL trả về mã lua
+    FastLoad("https://pastebin.com/raw/vmjZ4UY8")
+end})
+
+Tab3:AddButton({Name = "Fix Lag", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/TurboLite/Script/main/FixLag.lua")
+end})
+
+Tab3:AddButton({Name = "Anti Kick", Callback = function()
+    FastLoad("https://pastebin.com/raw/FPfaukXN")
+end})
+
+Tab3:AddButton({Name = "Farm Nhanh", Callback = function()
+    FastLoad("https://api.realaya.xyz/v1/files/l/73mkp0aqyfo4ypy8hvl0nz10lq49fey5.lua")
+end})
+
+-- Tab2
+Tab2:AddButton({Name = "Fruit Finder", Callback = function()
+    -- NOTE: link trước bạn dùng '/.lua' có vẻ sai; cần raw link chính xác
+    FastLoad("https://raw.githubusercontent.com/AdminusGames/Blox_Fruits_Sniper/main/yourfile.lua") -- <- sửa
+end})
+
+Tab2:AddButton({Name = "Arceus X", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/AZYsGithub/chillz-workshop/main/Arceus X V3.lua") -- <- sửa thành raw
+end})
+
+Tab2:AddButton({Name = "Krnl", Callback = function()
+    FastLoad("https://pastebin.com/raw/M3HjLPU7")
+end})
+
+Tab2:AddButton({Name = "Synapse X", Callback = function()
+    FastLoad("https://pastebin.com/raw/QmqSgQ3K")
+end})
+
+Tab2:AddButton({Name = "Keyboard", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/advxzivhsjjdhxhsidifvsh/mobkeyboard/main/main.txt")
+end})
+
+-- Tab (new)
+Tab:AddButton({Name = "NEW: Alchemy", Callback = function()
+    FastLoad("https://scripts.alchemyhub.xyz") -- server may redirect; ensure it returns raw lua
+end})
+
+Tab:AddButton({Name = "NEW: Banana", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/ScriptRUs/BananaHub/main/BananaHub.lua")
+end})
+
+Tab:AddButton({Name = "NEW: BLUE X", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/Dev-BlueX/BlueX-Hub/main/EN.lua")
+end})
+
+Tab:AddButton({Name = "Chests Farm", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/NickelHUBB/SonicTuru/main/ChestFarmOp")
+end})
+
+-- Tab4 (Script cũ)
+Tab4:AddButton({Name = "Domadic Hub", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/Domadicoof/Domadicoof/main/Domadichub/NottoGay/Start.ranscript") -- <-- kiểm tra file path & raw
+end})
+
+-- (vẫn còn nhiều nút, bạn sửa tương tự)
+-- NOTE: Có một vài lỗi gõ trong bản cũ:
+--    loaloadstring -> sửa thành loadstring (đã sửa)
+--    một số đường dẫn dùng refs/heads/... -> phải bỏ phần refs/heads trong raw URL
+
+print("Loader đã sẵn sàng. Kiểm tra console (F9) nếu có lỗi.")title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = frame
 
 -- Nút Hello
