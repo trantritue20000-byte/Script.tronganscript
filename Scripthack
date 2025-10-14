@@ -1,40 +1,61 @@
--- Robust loader for KRNL / other executors
--- - Async download + pcall
--- - Detect non-raw responses (HTML / 404)
--- - Fallback GUI if OrionLib not available
--- EDIT: Replace OrionLibRaw with your real raw URL if you want full Orion features.
-
-repeat task.wait() until game:IsLoaded()
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-repeat task.wait() until player and player:FindFirstChild("PlayerGui")
-
--- helpers
-local function isLikelyHtml(src)
-    if not src or type(src) ~= "string" then return false end
-    local s = src:lower()
-    if s:find("<!doctype") or s:find("<html") or s:find("github.com") or s:find("not found") or s:find("404") then
-        return true
+-- Load OrionLib từ raw của bạn (an toàn bằng pcall)
+local OrionLib
+do
+    local ok, res = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/trantritue20000-byte/Script.tronganscript/main/Scripthack", true)
+    end)
+    if not ok or not res or res == "" then
+        warn("Không tải được raw OrionLib từ URL của bạn:", res)
+    else
+        local ok2, fnOrErr = pcall(loadstring, res)
+        if ok2 and type(fnOrErr) == "function" then
+            local ok3, instOrErr = pcall(fnOrErr)
+            if ok3 then
+                OrionLib = instOrErr
+            else
+                warn("Lỗi khi chạy OrionLib từ raw:", instOrErr)
+            end
+        else
+            warn("Lỗi compile OrionLib từ raw:", fnOrErr)
+        end
     end
-    return false
 end
 
-local function FastLoad(url)
-    spawn(function()
-        if not url or url == "" then
-            warn("[FastLoad] Empty URL")
-            return
-        end
+-- Nếu không load được OrionLib, thông báo và dừng hoặc fallback (ở đây dừng)
+if not OrionLib then
+    warn("OrionLib không sẵn sàng — GUI chính thức sẽ không hoạt động.")
+    -- Bạn có thể thay bằng fallback GUI nếu muốn; hiện tại script dừng ở đây.
+    return
+end
 
-        local ok, src = pcall(function() return game:HttpGet(url, true) end)
-        if not ok or not src or src == "" then
-            warn("[FastLoad] Download failed or empty:", url, src)
-            return
-        end
+-- Tạo Window với tên mới "an script hub"
+local Window = OrionLib:MakeWindow({
+    Name = "an script hub",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "dxl_bf"
+})
 
-        if isLikelyHtml(src) then
-            warn("[FastLoad] Response looks like HTML/404 or not-raw. Check URL:", url)
-            -- optionally print first 200 chars to help debug
+-- Tạo Tab
+local Tab = Window:MakeTab({
+    Name = "Scripts Mới",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Ví dụ 1 nút Hello
+Tab:AddButton({
+    Name = "Hello",
+    Callback = function()
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "an script hub",
+                Text = "Hello!",
+                Duration = 5
+            })
+        end)
+    end
+})            -- optionally print first 200 chars to help debug
             local sample = tostring(src):sub(1,200)
             warn("[FastLoad] Sample:", sample)
             return
