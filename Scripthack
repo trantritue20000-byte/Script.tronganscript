@@ -1,40 +1,276 @@
--- Anh/chị chỉnh các url thành RAW URL trả về mã thô (raw.githubusercontent.com/.../branch/path)
--- Script loader an toàn & async, phù hợp KRNL
+-- Robust loader for KRNL / other executors
+-- - Async download + pcall
+-- - Detect non-raw responses (HTML / 404)
+-- - Fallback GUI if OrionLib not available
+-- EDIT: Replace OrionLibRaw with your real raw URL if you want full Orion features.
 
 repeat task.wait() until game:IsLoaded()
-
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 repeat task.wait() until player and player:FindFirstChild("PlayerGui")
 
--- Hàm load an toàn (async) - trả về true/false và message
+-- helpers
+local function isLikelyHtml(src)
+    if not src or type(src) ~= "string" then return false end
+    local s = src:lower()
+    if s:find("<!doctype") or s:find("<html") or s:find("github.com") or s:find("not found") or s:find("404") then
+        return true
+    end
+    return false
+end
+
 local function FastLoad(url)
     spawn(function()
-        local ok, src = pcall(function()
-            return game:HttpGet(url, true) -- true để lấy luôn bản mới
-        end)
+        if not url or url == "" then
+            warn("[FastLoad] Empty URL")
+            return
+        end
+
+        local ok, src = pcall(function() return game:HttpGet(url, true) end)
         if not ok or not src or src == "" then
-            warn("Download failed or empty source:", url, src)
+            warn("[FastLoad] Download failed or empty:", url, src)
+            return
+        end
+
+        if isLikelyHtml(src) then
+            warn("[FastLoad] Response looks like HTML/404 or not-raw. Check URL:", url)
+            -- optionally print first 200 chars to help debug
+            local sample = tostring(src):sub(1,200)
+            warn("[FastLoad] Sample:", sample)
             return
         end
 
         local ok2, fnOrErr = pcall(loadstring, src)
         if not ok2 or type(fnOrErr) ~= "function" then
-            warn("Compile error for url:", url, fnOrErr)
+            warn("[FastLoad] loadstring compile error for url:", url, fnOrErr)
             return
         end
 
         local ok3, runErr = pcall(fnOrErr)
         if not ok3 then
-            warn("Runtime error for url:", url, runErr)
+            warn("[FastLoad] runtime error for url:", url, runErr)
             return
         end
+
+        print("[FastLoad] Successfully executed:", url)
     end)
 end
 
--- LOAD ORIONLIB
--- CHÚ Ý: thay URL bên dưới bằng RAW URL cho OrionLib nếu bạn có (ví dụ raw.githubusercontent.com/..../OrionLib.lua)
-local OrionLibUrl = "https://raw.githubusercontent.com/<username>/<repo>/main/OrionLib.lua" -- <- sửa bằng raw đúng
+-- Try load OrionLib (raw url placeholder)
+local OrionLibRaw = "https://raw.githubusercontent.com/<username>/<repo>/main/OrionLib.lua" -- <- REPLACE with actual raw OrionLib URL if available
+local OrionLib
+do
+    local ok, src = pcall(function() return game:HttpGet(OrionLibRaw, true) end)
+    if ok and src and not isLikelyHtml(src) then
+        local ok2, lib = pcall(loadstring, src)
+        if ok2 and type(lib) == "function" then
+            local ok3, inst = pcall(lib)
+            if ok3 then
+                OrionLib = inst
+            else
+                warn("[Orion] error running OrionLib init:", inst)
+            end
+        else
+            warn("[Orion] compile failed:", lib)
+        end
+    else
+        warn("[Orion] Could not download OrionLib or response not raw. Using fallback GUI.")
+    end
+end
+
+-- Fallback window creator (minimal) in case Orion not available
+local Window
+if not OrionLib then
+    local function MakeSimpleWindow(titleText)
+        local gui = Instance.new("ScreenGui")
+        gui.Name = titleText .. "_fallback"
+        gui.ResetOnTeleport = false
+        gui.Parent = player.PlayerGui
+
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, 380, 0, 300)
+        frame.Position = UDim2.new(0.5, -190, 0.5, -150)
+        frame.AnchorPoint = Vector2.new(0.5, 0.5)
+        frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+        frame.BorderSizePixel = 0
+        frame.Parent = gui
+
+        local title = Instance.new("TextLabel")
+        title.Size = UDim2.new(1, -12, 0, 30)
+        title.Position = UDim2.new(0, 6, 0, 6)
+        title.BackgroundTransparency = 1
+        title.Text = titleText
+        title.TextColor3 = Color3.new(1,1,1)
+        title.Font = Enum.Font.SourceSansBold
+        title.TextSize = 18
+        title.TextXAlignment = Enum.TextXAlignment.Left
+        title.Parent = frame
+
+        local container = Instance.new("Frame")
+        container.Size = UDim2.new(1, -12, 1, -48)
+        container.Position = UDim2.new(0, 6, 0, 40)
+        container.BackgroundTransparency = 1
+        container.Parent = frame
+
+        local buttons = {}
+        function buttons:AddButton(opts)
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(0, 340, 0, 34)
+            btn.Position = UDim2.new(0, 10, 0, (#container:GetChildren()-1)*40)
+            btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+            btn.TextColor3 = Color3.new(1,1,1)
+            btn.Font = Enum.Font.SourceSans
+            btn.TextSize = 16
+            btn.Text = opts.Name or "Button"
+            btn.Parent = container
+            btn.MouseButton1Click:Connect(function()
+                if type(opts.Callback) == "function" then
+                    local ok, err = pcall(opts.Callback)
+                    if not ok then warn("[Button Callback] error:", err) end
+                end
+            end)
+        end
+
+        return buttons
+    end
+
+    Window = MakeSimpleWindow("Anscript HUB (fallback)")
+else
+    -- If OrionLib provides MakeWindow as expected
+    local ok, w = pcall(function()
+        return OrionLib:MakeWindow({Name = "Anscript HUB", HidePremium = false, SaveConfig = true, ConfigFolder = "dxl_bf"})
+    end)
+    if ok and w then
+        Window = w
+    else
+        warn("[Orion] MakeWindow failed, using fallback.")
+        Window = (function() return { AddButton = function() end } end)()
+    end
+end
+
+-- Helper to create tabs or use fallback Window directly
+local function MakeTab(name)
+    if OrionLib and Window.MakeTab then
+        local ok, tab = pcall(function()
+            return Window:MakeTab({Name = name, Icon = "rbxassetid://4483345998", PremiumOnly = false})
+        end)
+        if ok and tab then return tab end
+    end
+    return Window
+end
+
+local Tab = MakeTab("Scripts Mới")
+local Tab2 = MakeTab("Mod Client")
+local Tab3 = MakeTab("Mod Game")
+local Tab4 = MakeTab("Script Cũ")
+
+-- === Buttons (URLs kept, but loader will warn if any URL is not raw or returns HTML) ===
+
+Tab3:AddButton({Name = "RTX", Callback = function()
+    FastLoad("https://pastebin.com/raw/vmjZ4UY8")
+end})
+
+Tab3:AddButton({Name = "Fix Lag", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/TurboLite/Script/main/FixLag.lua")
+end})
+
+Tab3:AddButton({Name = "Anti Kick", Callback = function()
+    FastLoad("https://pastebin.com/raw/FPfaukXN")
+end})
+
+Tab3:AddButton({Name = "Farm Nhanh", Callback = function()
+    FastLoad("https://api.realaya.xyz/v1/files/l/73mkp0aqyfo4ypy8hvl0nz10lq49fey5.lua")
+end})
+
+Tab2:AddButton({Name = "Fruit Finder", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/AdminusGames/Blox_Fruits_Sniper/main/.lua") -- check this raw path
+end})
+
+Tab2:AddButton({Name = "Arceus X", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/AZYsGithub/chillz-workshop/main/Arceus%20X%20V3") -- likely needs correct file name
+end})
+
+Tab2:AddButton({Name = "Krnl", Callback = function()
+    FastLoad("https://pastebin.com/raw/M3HjLPU7")
+end})
+
+Tab2:AddButton({Name = "Synapse X", Callback = function()
+    FastLoad("https://pastebin.com/raw/QmqSgQ3K")
+end})
+
+Tab2:AddButton({Name = "Keyboard", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/advxzivhsjjdhxhsidifvsh/mobkeyboard/main/main.txt")
+end})
+
+Tab:AddButton({Name = "NEW: Alchemy", Callback = function()
+    FastLoad("https://scripts.alchemyhub.xyz")
+end})
+
+Tab:AddButton({Name = "NEW: Banana", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/ScriptRUs/BananaHub/main/BananaHub.lua")
+end})
+
+Tab:AddButton({Name = "NEW: BLUE X", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/Dev-BlueX/BlueX-Hub/main/EN.lua")
+end})
+
+Tab:AddButton({Name = "Chests Farm", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/NickelHUBB/SonicTuru/main/ChestFarmOp")
+end})
+
+Tab4:AddButton({Name = "Domadic Hub", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/Domadicoof/Domadicoof/main/Domadichub/NottoGay/Start.ranscript")
+end})
+
+Tab4:AddButton({Name = "FTS X Hub!", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/tufreescript/FTS-X-Hub/main/FTSXHUB%20V1")
+end})
+
+Tab4:AddButton({Name = "T7GFY GUI", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/minded102/dokinbog/main/README.md")
+end})
+
+Tab4:AddButton({Name = "CFrame Hub", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/Steveee11/Scripts/main/Blox%20Fruits%20OP%20Script")
+end})
+
+Tab4:AddButton({Name = "Flare Hub", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/1f0yt/community/master/flares")
+end})
+
+Tab4:AddButton({Name = "BLCK Hub", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/1f0yt/community/main/BLCK")
+end})
+
+Tab4:AddButton({Name = "Modz HUb", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/1f0yt/community/master/modz")
+end})
+
+Tab4:AddButton({Name = "Hoho Hub", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/acsu123/HOHO_H/main/Loading_UI")
+end})
+
+Tab4:AddButton({Name = "Lol Hub", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/1f0yt/community/main/neon")
+end})
+
+Tab4:AddButton({Name = "Zen Hub", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/Kaizenofficiall/ZenHub/main/Loader")
+end})
+
+Tab4:AddButton({Name = "Uranium/Switch Hub", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/Augustzyzx/UraniumX/main/src_.lua.txt")
+end})
+
+Tab4:AddButton({Name = "Thunder Z", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/ThunderZ-05/HUB/main/Mobile-Loader")
+end})
+
+Tab4:AddButton({Name = "Mukuro Hub", Callback = function()
+    FastLoad("https://raw.githubusercontent.com/xDepressionx/Free-Script/main/BloxFruit.lua")
+end})
+
+print("Loader ready. Open the GUI and click a button. If any URL returns HTML/404 the console will warn with the sample text.")local OrionLibUrl = "https://raw.githubusercontent.com/<username>/<repo>/main/OrionLib.lua" -- <- sửa bằng raw đúng
 local OrionLib
 do
     local ok, res = pcall(function()
