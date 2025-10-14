@@ -1,41 +1,25 @@
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/trantritue20000-byte/Script.tronganscript/refs/heads/main/Anscript%20hub"))()
+
 local Window = OrionLib:MakeWindow({
-
     Name = "AnScript HUB",
-
     HidePremium = false,
-
     SaveConfig = true,
-
     ConfigFolder = "dxl_bf"
-
 })
 
 local Tab = Window:MakeTab({
-
     Name = "Scripts",
-
     Icon = "rbxassetid://4483345998",
-
     PremiumOnly = false
-
 })
 
 Tab:AddButton({
-
     Name = "Hello",
-
     Callback = function()
-
         game:GetService("StarterGui"):SetCore("SendNotification", {
-
             Title = "AnScript HUB",
-
             Text = "Hello!",
-
             Duration = 5
-
         })
-
     end
-
 })
