@@ -1,4 +1,4 @@
-local OrionLib = loadstring(game:HttpGet("https://github.com/trantritue20000-byte/Script.tronganscript"))()
+local OrionLib = loadstring(game:HttpGet(" https://raw.githubusercontent.com/trantritue20000-byte/Script.tronganscript/refs/heads/main/Scripthack"))()
 
 local Window = OrionLib:MakeWindow({Name = "Anscript HUB", HidePremium = false, SaveConfig = true, ConfigFolder = "dxl_bf"})
 
