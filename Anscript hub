@@ -1,4 +1,4 @@
-local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/trantritue20000-byte/Script.tronganscript/main/Anscript%20hub"))()
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/trantritue20000-byte/Script.tronganscript/main/Anscript%20hub.lua"))()
 local x = library:CreateWindow("anscript hub")
 local b = x:CreateFolder("player")
 
