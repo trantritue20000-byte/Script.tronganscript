@@ -1,1 +1,5 @@
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/trantritue20000-byte/Script.tronganscript/refs/heads/main/Anscript%20hub.lua')))()
 
+local Window = OrionLib:MakeWindow({Name = "AN SCRIPT HUB", HidePremium = false, SaveConfig = true, ConfigFolder = "dxl_bf"})
+
+return OrionLib
