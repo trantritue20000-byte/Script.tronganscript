@@ -1,3 +1,405 @@
+--// AN SCRIPT HUB v2.0 - By Trọng An
+
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/trantritue20000-byte/Script.tronganscript/refs/heads/main/Script1.lua')))()
 
-local Window = OrionLib:MakeWindow({Name = "AN SCRIPT HUB", HidePremium = false, SaveConfig = true, ConfigFolder = "dxl_bf"})
+local Window = OrionLib:MakeWindow({
+	Name = "AN SCRIPT HUB",
+	HidePremium = false,
+	SaveConfig = true,
+	ConfigFolder = "an_script_hub"
+})
+
+--// 🧠 TAB 1: CHỨC NĂNG
+local Tab1 = Window:MakeTab({
+	Name = "CHỨC NĂNG",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+----------------------------------------------------
+-- 🏃‍♂️ Tốc độ bật/tắt
+----------------------------------------------------
+local speedEnabled = false
+Tab1:AddToggle({
+	Name = "Bật/Tắt Tăng Tốc",
+	Default = false,
+	Callback = function(Value)
+		speedEnabled = Value
+		local player = game.Players.LocalPlayer
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.WalkSpeed = speedEnabled and 40 or 16
+		end
+	end
+})
+
+----------------------------------------------------
+-- 🚪 Noclip bật/tắt
+----------------------------------------------------
+local noclipEnabled = false
+Tab1:AddToggle({
+	Name = "Bật/Tắt Noclip",
+	Default = false,
+	Callback = function(Value)
+		noclipEnabled = Value
+		game:GetService("RunService").Stepped:Connect(function()
+			if noclipEnabled then
+				for _, v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+					if v:IsA("BasePart") then
+						v.CanCollide = false
+					end
+				end
+			end
+		end)
+	end
+})
+
+----------------------------------------------------
+-- ✈️ Fly V3 Script
+----------------------------------------------------
+Tab1:AddButton({
+	Name = "FLY V4 Script",
+	Callback = function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/linhmcfake/Script/refs/heads/main/BetterFlyGUI.lua"))() 
+	end
+})
+
+Tab1:AddButton({
+	Name = "SHIFT LOCK",
+	Callback = function()
+		--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+loadstring(game:HttpGet("https://github.com/ltseverydayyou/uuuuuuu/blob/main/shiftlock?raw=true"))() 
+	end
+})
+
+Tab1:AddButton({
+	Name = "AIMBOT SCRIPT",
+	Callback = function()
+		loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Aimbot-Mobile-34677"))() 
+	end
+})
+
+----------------------------------------------------
+-- 🦘 Infinite Jump bật/tắt
+----------------------------------------------------
+local infJumpEnabled = false
+Tab1:AddToggle({
+	Name = "Bật/Tắt Infinite Jump",
+	Default = false,
+	Callback = function(Value)
+		infJumpEnabled = Value
+	end
+})
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+	if infJumpEnabled then
+		local player = game.Players.LocalPlayer
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+		end
+	end
+end)
+
+----------------------------------------------------
+-- 🔍 ESP 1.0 (hiện tên & outline đỏ)
+----------------------------------------------------
+local ESPEnabled = false
+local ESPObjects = {}
+
+local function createESP(player)
+	if player == game.Players.LocalPlayer then return end
+	player.CharacterAdded:Connect(function(character)
+		repeat task.wait() until character:FindFirstChild("Head")
+
+		local highlight = Instance.new("Highlight")
+		highlight.Name = "ESPHighlight"
+		highlight.FillTransparency = 1
+		highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+		highlight.Parent = character
+		table.insert(ESPObjects, highlight)
+
+		local nameBillboard = Instance.new("BillboardGui")
+		nameBillboard.Name = "ESPName"
+		nameBillboard.AlwaysOnTop = true
+		nameBillboard.Size = UDim2.new(0, 200, 0, 30)
+		nameBillboard.StudsOffset = Vector3.new(0, 2, 0)
+		nameBillboard.Parent = character:FindFirstChild("Head")
+
+		local label = Instance.new("TextLabel")
+		label.Parent = nameBillboard
+		label.BackgroundTransparency = 1
+		label.Text = player.Name
+		label.TextColor3 = Color3.fromRGB(255, 0, 0)
+		label.Font = Enum.Font.SourceSansBold
+		label.TextSize = 16
+		label.Size = UDim2.new(1, 0, 1, 0)
+	end)
+end
+
+for _, player in pairs(game.Players:GetPlayers()) do
+	if player ~= game.Players.LocalPlayer then
+		createESP(player)
+	end
+end
+
+game.Players.PlayerAdded:Connect(function(player)
+	createESP(player)
+end)
+
+Tab1:AddToggle({
+	Name = "ESP 1.0 (hiện tên + viền đỏ)",
+	Default = false,
+	Callback = function(Value)
+		ESPEnabled = Value
+		for _, v in pairs(game.Players:GetPlayers()) do
+			if v.Character then
+				local highlight = v.Character:FindFirstChild("ESPHighlight")
+				local billboard = v.Character:FindFirstChild("Head") and v.Character.Head:FindFirstChild("ESPName")
+				if highlight then highlight.Enabled = ESPEnabled end
+				if billboard then billboard.Enabled = ESPEnabled end
+			end
+		end
+	end
+})
+
+----------------------------------------------------
+-- 🧩 TAB 2: SCRIPT
+----------------------------------------------------
+local Tab2 = Window:MakeTab({
+	Name = "SCRIPT",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+Tab2:AddButton({
+	Name = "Infinite Yield FE",
+	Callback = function()
+		loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+	end
+})
+
+Tab2:AddButton({
+	Name = "cloudHub",
+	Callback = function()
+		loadstring(game:HttpGet("https://pastefy.app/X6fuVyEZ/raw"))() 
+	end
+})
+
+Tab2:AddButton({
+	Name = "GHOST HUB",
+	Callback = function()
+		--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+loadstring(game:HttpGet('https://raw.githubusercontent.com/GhostPlayer352/Test4/main/GhostHub'))() 
+	end
+})
+
+Tab1:AddButton({
+	Name = "TÀNG HÌNH",
+	Callback = function()
+		local NotificationLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/lobox920/Notification-Library/Main/Library.lua"))()
+NotificationLibrary:SendNotification("Info", "only works in r6 shape", 5.3)
+NotificationLibrary:SendNotification("Success", "I'm a cool message", 6)
+
+wait(6.2)
+-- Gui Setup
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local ToggleButton = Instance.new("TextButton")
+local dragging, dragInput, dragStart, startPos
+
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Name = "InvisibleGui"
+
+MainFrame.Size = UDim2.new(0, 200, 0, 100)
+MainFrame.Position = UDim2.new(0.5, -100, 0.5, -50)
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+ToggleButton.Size = UDim2.new(0.8, 0, 0, 40)
+ToggleButton.Position = UDim2.new(0.1, 0, 0.5, -20)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+ToggleButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Text = "Toggle Invisible"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Font = Enum.Font.SourceSans
+ToggleButton.TextSize = 18
+ToggleButton.Parent = MainFrame
+
+-- Dragging
+MainFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = MainFrame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                       startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+-- Invisible Script
+local player = game.Players.LocalPlayer
+local originalFace = nil
+local accessories = {}
+local clonedHumanoidRootPart = nil
+local invisibleOn = false
+
+local function makeInvisible()
+    if not player.Character then return end
+
+    -- Save Accessories
+    for _, accessory in ipairs(player.Character:GetChildren()) do
+        if accessory:IsA("Accessory") then
+            table.insert(accessories, accessory:Clone())
+        end
+    end
+
+    -- Save Face
+    local head = player.Character:FindFirstChild("Head")
+    if head and head:FindFirstChild("face") then
+        originalFace = head.face:Clone()
+        head.face:Destroy()
+    end
+
+    -- Save HumanoidRootPart
+    local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        clonedHumanoidRootPart = hrp:Clone()
+        local position = hrp.Position
+        task.wait(0.1)
+        player.Character:MoveTo(position + Vector3.new(0, 1000000, 0))
+        task.wait(0.1)
+        hrp:Destroy()
+        clonedHumanoidRootPart.Parent = player.Character
+        player.Character:MoveTo(position)
+    end
+
+    -- Transparency
+    for _, partName in ipairs({"Torso", "Head", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}) do
+        local part = player.Character:FindFirstChild(partName)
+        if part then
+            part.Transparency = 0.5
+        end
+    end
+
+    -- Remove accessories
+    for _, child in ipairs(player.Character:GetChildren()) do
+        if child:IsA("Accessory") then
+            child:Destroy()
+        end
+    end
+end
+
+local function makeVisible()
+    if not player.Character then return end
+
+    -- Restore Transparency
+    for _, partName in ipairs({"Torso", "Head", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}) do
+        local part = player.Character:FindFirstChild(partName)
+        if part then
+            part.Transparency = 0
+        end
+    end
+
+    -- Restore Accessories
+    for _, accessory in ipairs(accessories) do
+        accessory:Clone().Parent = player.Character
+    end
+    accessories = {}
+
+    -- Restore Face
+    local head = player.Character:FindFirstChild("Head")
+    if head and originalFace then
+        originalFace:Clone().Parent = head
+    end
+    originalFace = nil
+end
+
+-- Toggle
+ToggleButton.MouseButton1Click:Connect(function()
+    if not invisibleOn then
+        makeInvisible()
+        ToggleButton.Text = "Invisible On"
+    else
+        makeVisible()
+        ToggleButton.Text = "Toggle Invisible"
+    end
+    invisibleOn = not invisibleOn
+end) 
+	end
+})
+
+-- tab 3 ............ hax roblox
+
+local Tab3 = Window:MakeTab({
+	Name = "SCRIPT HAX  ROBLOX",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+Tab3:AddButton({
+	Name = "ink game",
+	Callback = function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/wefwef127382/inkgames.github.io/refs/heads/main/ringta.lua"))()  
+	end
+})
+
+Tab3:AddButton({
+	Name = "STEAL A BRAINROT",
+	Callback = function()
+        loadstring(game:HttpGet("https://api.luarmor.net/files/v3/loaders/4dfd8f97b48ec9c81706cb36a3f382d8.lua"))() 
+	end
+})
+
+Tab3:AddButton({
+	Name = "ARSENAL",
+	Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Insertl/QuotasHub/main/BETAv1.3"))()
+	end
+})
+
+local Tab4 = Window:MakeTab({
+	Name = "SCRIPT HUTAO HUB",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+Tab4:AddButton({
+	Name = "Break in 2",
+	Callback = function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/hdksakst-ship-it/Hutao-Hub-Omega-X/refs/heads/main/BI2.txt"))() 
+	end
+})
+
+Tab4:AddButton({
+	Name = "FORSAKEN V4",
+	Callback = function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/hdksakst-ship-it/Anti-Ban/refs/heads/main/Forsaken-V4-New.txt"))() 
+	end
+})
